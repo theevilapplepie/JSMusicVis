@@ -24,27 +24,36 @@
         #player-wrapper {
             height: 50px;
             width: 600px;
-            border: 1px solid rgba(185, 185, 185, 0.1);
+            border: 1px solid rgba(185, 185, 185, 0.2);
             border-radius: 10px;
-            background-color: rgba(44, 44, 44, 0.4);
-            margin-left: auto;
-            margin-right: auto;
+            background-color: rgba(44, 44, 44, 0.3);
+            position: relative;
+            left: 50%;
             display: flex;
             gap: 16px;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
+            transition: left 1s ease-in-out;
+            transform: translateX(-50%);
+        }
+        #player-wrapper.hidden {
+            left: -284px;
+        }
+        #player-wrapper.hidden #player-hide {
+            color: rgba(255,255,255,0.5);
         }
         #player .now_playing {
             display: flex;
-            justify-content: center;
             align-items: center;
             height: 95%;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 5px;
-            padding-left: 3px;
+            background: rgba(0, 0, 0, 0.5);
+            border-top-left-radius: 10px;
+            border-bottom-left-radius: 10px;
+            padding-left: 4px;
             padding-right: 8px;
             gap: 5px;
             font-size: .8em;
+            flex-grow: 1;
         }
         #player .icon {
             border-radius: 5px;
@@ -56,6 +65,9 @@
             justify-content: center;
             align-items: center;
         }
+        #player .icon:hover {
+            cursor: pointer;
+        }
         #player .icon img {
             width: 32px;
         }
@@ -66,6 +78,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            padding-right: 3px;
         }
         #player .controls_group {
             display: flex;
@@ -82,6 +95,24 @@
         }
         #player .progress .time {
             font-size: .7em;
+            padding-left: 3px;
+        }
+        #player .hide {
+            height: 100%;
+            vertical-align: middle;
+            background-color: rgba(0,0,0,.5);
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+            display: flex;
+            align-items: center;
+            color: rgba(255,255,255,.8);
+        }
+        #player .hide:hover {
+            cursor: pointer;
+        }
+        #controls_play ion-button {
+            position: relative;
+            left: 2px;
         }
     </style>
     <script type="text/javascript" src="node_modules/stats.js/build/stats.min.js"></script>
@@ -100,32 +131,6 @@
         }
     </script>
     <script type="module">
-
-        import * as id3 from '//unpkg.com/id3js@^2/lib/id3.js';
-        async function processID3(file) {
-            console.log(file);
-            const tags = await id3.fromFile(file);
-            if ( tags ) {
-                document.getElementById('player-title').innerHTML = tags.title;
-                document.getElementById('player-artist').innerHTML = tags.artist;
-            } else {
-                const filename_meta = /^([^-]+)[ ]+-[ ]+([^-]+)$/;
-                const file_ext = /\.[a-zA-Z]+$/;
-                let file_name = file.name;
-                file_name = file_name.replace(file_ext,'');
-                let found = file_name.match(filename_meta);
-                console.log(found);
-                if ( found ) {
-                    document.getElementById('player-title').innerHTML = found[2];
-                    document.getElementById('player-artist').innerHTML = found[1];
-                } else {
-                    document.getElementById('player-title').innerHTML = file_name;
-                    document.getElementById('player-artist').innerHTML = '';
-                }
-            }
-            console.log(tags);
-            audio.play();
-        }
 
         function getRandomIntInclusive(min, max) {
             const minCeiled = Math.ceil(min);
@@ -205,10 +210,17 @@
 
             // Setup Audio
             document.getElementById('player_file').addEventListener('change', (e) => {
+                if ( e.currentTarget.files.length == 0 ) {
+                    return;
+                }
+                audio.pause();
+                audio.currentTime=0;
                 audio.src = URL.createObjectURL(e.currentTarget.files[0]);
                 setStorage('playback_file',audio.src,7);
-                processID3(e.currentTarget.files[0]);
-                //audio.play();
+                document.getElementById('player-title').innerHTML = e.currentTarget.files[0].name;
+                document.getElementById('player-artist').innerHTML = '';
+                //processID3(e.currentTarget.files[0]);
+                audio.play();
             });
 
             let slider = document.getElementById('player_slider');
@@ -252,10 +264,10 @@
             if ( last_src ) {
                 audio.src = last_src;
             }
-            // Fuck it, I just want reloadability without having to load the file
+            // I just want temporary reloadability without having to manually load the file
             audio.src = "/music.opus";
-            document.getElementById('player-title').innerHTML = "music.opus";
-            document.getElementById('player-artist').innerHTML = '';
+            //document.getElementById('player-title').innerHTML = "music.opus";
+            //document.getElementById('player-artist').innerHTML = '';
             let last_vol = getStorage('playback_vol');
             if ( last_vol ) {
                 audio.volume = last_vol;
@@ -271,7 +283,26 @@
                 audio.pause();
             });
 
-            audio.play();
+            if ( getStorage('playback_state') == 'playing' ) {
+                audio.play();
+            }
+            
+            // Setup hide/show player toggle
+            document.getElementById('player-hide').addEventListener('click', (e) => {
+                const wrapper = document.getElementById('player-wrapper');
+                const hideBack = document.getElementById('hide-back');
+                const hideForward = document.getElementById('hide-forward');
+                
+                wrapper.classList.toggle('hidden');
+                
+                if (wrapper.classList.contains('hidden')) {
+                    hideBack.style.display = 'none';
+                    hideForward.style.display = 'block';
+                } else {
+                    hideBack.style.display = 'block';
+                    hideForward.style.display = 'none';
+                }
+            });
         }, false);
 
         // We do this to avoid a weird race condition with audio element loading
@@ -1010,6 +1041,7 @@
             return window.requestAnimationFrame(frameLooper);
         }
 
+
    </script>
 </head>
 
@@ -1021,8 +1053,8 @@
             <div class="now_playing">
                 <div class="icon" onClick="document.getElementById('player_file').click();"><img src="compact-disk.png"></div>
                 <div class="meta">
-                    <div id="player-title">Click Disc</div>
-                    <div id="player-artist">To load song</div>
+                    <div id="player-title">Click disc and</div>
+                    <div id="player-artist">select a music file</div>
                 </div>
             </div>
             <div class="controls">
@@ -1046,6 +1078,10 @@
                 </div>
             </div>
             <div class="volume"></div>
+            <div class="hide" id="player-hide">
+                <ion-icon id="hide-back" name="chevron-back-outline"></ion-icon>
+                <ion-icon id="hide-forward" name="chevron-forward-outline" style="display: none;"></ion-icon>
+            </div>
         </div>
     </div>
 </body>
