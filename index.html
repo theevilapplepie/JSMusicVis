@@ -798,10 +798,10 @@
                 return;
             }
 
-            // Cap framerate at 30 fps
+            // Cap framerate at 60 fps
             const deltaTime = currentTime - lastFrameTime;
             if (deltaTime < targetFrameTime) {
-                //return window.requestAnimationFrame(frameLooper);
+                return window.requestAnimationFrame(frameLooper);
             }
             lastFrameTime = currentTime;
 
