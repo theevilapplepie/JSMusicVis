@@ -125,10 +125,6 @@
         function getStorage(name) {
             return sessionStorage.getItem(name);
         }
-
-        function eraseCookie(name) {   
-            document.cookie = name +'=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-        }
     </script>
     <script type="module">
 
@@ -451,7 +447,8 @@
                     let curColorMix = 0.5;
                     let tmpColorMix = 0.5;
                     let falloff = 0.005;
-                    if ( x > 2 ) {
+
+                    if ( x >= 0 ) {
                         let lftCoords = vec2<i32>(i32(x) - 1, i32(y));
                         var tmpColor = textureLoad(inputTex, lftCoords, 0);
                         newColor_r = (newColor_r * curColorMix) + (tmpColor.r * tmpColorMix);
@@ -467,7 +464,7 @@
                         newColor_b = (newColor_b * curColorMix) + (tmpColor.b * tmpColorMix);
                         totalPixels++;
                     }
-                    if ( y > 0 && y > halfHeight ) {
+                    if ( y > 0 ) {
                         let upCoords = vec2<i32>(i32(x), i32(y) - 1);
                         let tmpColor = textureLoad(inputTex, upCoords, 0);
                         newColor_r = (newColor_r * curColorMix) + (tmpColor.r * tmpColorMix);
@@ -812,7 +809,7 @@
             // Get current canvas texture
             const canvasTexture = gpuContext.getCurrentTexture();
             
-            // Run blur compute shader - top half pass (renderTexture -> tempTexture)
+            // Run blur compute shader
             {
                 const uniformData = new Uint32Array([
                     canvas.width,
@@ -841,8 +838,8 @@
                 clearFrame = 0;
             }
 
+            // Are we an update frame for the waveform?
             if ( updateWaveform ) {
-                // Draw waveform on renderTexture first
                 // Get audio data
                 analyser.getByteTimeDomainData(dataArray);
                 
@@ -855,22 +852,24 @@
 
                 // Update color values
                 let new_r, new_g, new_b;
-                if ( isNaN(avg_r) || isNaN(avg_g) || isNaN(avg_b) || ((avg_r - avg_g) < 10 && (avg_g - avg_b) < 10  && (avg_b - avg_g) < 10) ) {
-                    avg_r = getRandomIntInclusive(0,255);
-                    avg_g = getRandomIntInclusive(0,255);
-                    avg_b = getRandomIntInclusive(0,255);
+                if ( isNaN(avg_r) || isNaN(avg_g) || isNaN(avg_b) || // if averages are not set
+                     ((avg_r - avg_g) < 50 && (avg_g - avg_b) < 50  && (avg_b - avg_g) < 50) || // if the different values are too similar ( eg: bland )
+                     ( avg_r < 128 && avg_g < 128 && avg_b < 128 ) // if it's not bright enough
+                ) {
+                    while ( avg_r < 200 && avg_g < 200 && avg_b < 200 ) {
+                        avg_r = getRandomIntInclusive(0,255);
+                        avg_g = getRandomIntInclusive(0,255);
+                        avg_b = getRandomIntInclusive(0,255);
+                    }
                 }
 
-                new_r = 255 - Math.round(avg_r)
-                avg_r = Math.min(avg_r + getRandomIntInclusive(0,20), 256);
+                avg_r = Math.min(avg_r + getRandomIntInclusive(0,20), 255);
                 avg_r = Math.max(avg_r - getRandomIntInclusive(0,20),0);
                 
-                new_g = 255 - Math.round(avg_g);
-                avg_g = Math.min(avg_g + getRandomIntInclusive(0,20), 256);
+                avg_g = Math.min(avg_g + getRandomIntInclusive(0,20), 255);
                 avg_g = Math.max(avg_g - getRandomIntInclusive(0,20),0);
 
-                new_b = 255 - Math.round(avg_b);
-                avg_b = Math.min(avg_b + getRandomIntInclusive(0,20), 256);
+                avg_b = Math.min(avg_b + getRandomIntInclusive(0,20), 255);
                 avg_b = Math.max(avg_b - getRandomIntInclusive(0,20),0);
 
                 // Create waveform uniforms buffer
