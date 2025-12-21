@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "ionicons": "^7.4.0",
+    "jsmediatags": "^3.9.7",
+    "music-metadata": "^10.8.1",
+    "stats.js": "^0.17.0"
+  }
+}
