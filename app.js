@@ -28,6 +28,10 @@ function secondsToTime(inputsec) {
 let bufferLength = 512;
 let dataArray = new Uint8Array(bufferLength);
 
+var notyf = new Notyf({
+    duration: 3000,
+});
+
 var canvas, audio, source, context, analyser, stats, mid_y, heightChunks, sliceWidth;
 
 var savedFile = '';
@@ -152,7 +156,7 @@ async function setupWebGPURenderer() {
         await renderer.initialize(canvas,bufferLength);
         resizeCanvas();
     } catch (error) {
-        alert(error.message);
+        notyf.error('WebGPU Initialization Error: ' + error.message);
         return;
     }
 }
@@ -198,8 +202,16 @@ async function changeAudioFile(filepath,autoplay=true) {
         }).catch(error => {
             // Autoplay was prevented
             console.log('Autoplay blocked:', error);
+            notyf.error('Autoplay blocked by browser. Please click play to start audio.');
         });     
     }
+}
+
+function setPlayerDefaultText() {
+    document.getElementById('player-title').innerHTML = 'Click the icon';
+    document.getElementById('player-artist').innerHTML = '<span style="font-size: .9em;">and select a music file from your device</span>';
+    document.getElementById('player_runtime').innerHTML = secondsToTime(0);
+    document.getElementById('player_duration').innerHTML = secondsToTime(0);
 }
 
 /* Application Entry Point */
@@ -208,17 +220,27 @@ async function appSetup() {
     // Perform Setup
     setupStatsOverlay();
     await setupWebGPURenderer();
+    setPlayerDefaultText();
 
     audio = document.getElementById('audio_player');
 
+    audio.addEventListener('error', (event) => {
+        console.error('Audio loading error:', audio.error.code, audio.error.message);
+        if ( audio.error.message.includes('open context failed') ) {
+            notyf.error('Failed to open audio file! Please check the file path and try again.');
+        } else {
+            notyf.error('Audio loading error: ' + audio.error.message);
+        }
+        setPlayerDefaultText();
+    })
     audio.addEventListener('loadstart', (e) => {
         setStorage('playback_file',audio.src,7);
         // Temporarily just display the filename ( we were using ID3 but that's been removed for now )
         // Don't set it for blob types and assume it's being set elsewhere
         if ( ! audio.src.startsWith('blob:') ) {
             document.getElementById('player-title').innerHTML = audio.src.split('/').pop();
+            document.getElementById('player-artist').innerHTML = '';
         }
-        document.getElementById('player-artist').innerHTML = '';
     });
     audio.addEventListener('loadedmetadata', (e) => {
         slider.max = audio.duration;
@@ -270,8 +292,10 @@ async function appSetup() {
             return;
         }
         // Overload setting the name as it's not that simple for local filesystem blobs
-        document.getElementById('player-title').innerHTML = e.currentTarget.files[0].name;
-        document.getElementById('player-artist').innerHTML = '';
+        let fileName = e.currentTarget.files[0].name
+        fileName = fileName.replace(/\.[^ ]+$/,'');
+        document.getElementById('player-title').innerHTML = fileName;
+        document.getElementById('player-artist').innerHTML = '< Click the icon to change music';
         // Load the new file
         changeAudioFile(URL.createObjectURL(e.currentTarget.files[0]));
     });
@@ -339,7 +363,9 @@ async function appSetup() {
     } else {
         // Temporarily always restore "music.opus" as the default audio file so I don't
         // pull my hair out having to manually pick a file after each reload.
-        changeAudioFile('music.opus',false);
+        if ( location.hostname == "127.0.0.1" ) {
+            changeAudioFile('musisc.opus',false);
+        }
     }
     let last_vol = getStorage('playback_vol');
     if ( last_vol ) {

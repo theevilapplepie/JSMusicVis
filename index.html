@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="stylesheet" href="node_modules/notyf/notyf.min.css">
     <link rel="stylesheet" href="styles.css">
     <script type="text/javascript" src="node_modules/stats.js/build/stats.min.js"></script>
+    <script type="text/javascript" src="node_modules/notyf/notyf.min.js"></script>
     <script type="module" src="node_modules/ionicons/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="node_modules/ionicons/dist/ionicons/ionicons.js"></script>
 </head>
@@ -13,10 +15,14 @@
         <input hidden type="file" id="player_file">
         <div id="player-wrapper">
             <div class="now_playing">
-                <div class="icon" onClick="document.getElementById('player_file').click();"><img src="compact-disk.png"></div>
+                <div class="icon" id="music_icon" onClick="document.getElementById('player_file').click();">
+                    <div id="icon_border">
+                        <ion-icon name="musical-notes" id="icon_image"></ion-icon>
+                    </div>
+                </div>
                 <div class="meta">
-                    <div id="player-title">Click disc and</div>
-                    <div id="player-artist">select a music file</div>
+                    <div id="player-title">Loading...</div>
+                    <div id="player-artist">Please Wait.</div>
                 </div>
             </div>
             <div class="controls">
