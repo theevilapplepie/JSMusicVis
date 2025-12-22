@@ -1,0 +1,131 @@
+html,body {
+    height: 100%;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    font-family: sans-serif;
+    background-color: #000;
+}
+
+#canvas {
+    z-index: 0;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+}
+
+#player {
+    position: fixed;
+    width: 100%;
+    bottom: 5px;
+    color: #fff;
+}
+
+#player-wrapper {
+    height: 50px;
+    width: 600px;
+    border: 1px solid rgba(185, 185, 185, 0.2);
+    border-radius: 10px;
+    background-color: rgba(44, 44, 44, 0.3);
+    position: relative;
+    left: 50%;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    align-items: center;
+    transition: left 0.5s ease-in-out;
+    transform: translateX(-50%);
+}
+
+#player-wrapper.hidden {
+    left: -284px;
+}
+
+#player-wrapper.hidden #player-hide {
+    color: rgba(255,255,255,0.5);
+}
+
+#player .now_playing {
+    display: flex;
+    align-items: center;
+    height: 95%;
+    background: rgba(0, 0, 0, 0.5);
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    padding-left: 4px;
+    padding-right: 8px;
+    gap: 5px;
+    font-size: .8em;
+    flex-grow: 1;
+}
+
+#player .icon {
+    border-radius: 5px;
+    border: 1px solid rgba(0, 0, 0, 0.5);
+    height: 85%;
+    aspect-ratio: 1;
+    background: rgba(255,255,255,1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#player .icon:hover {
+    cursor: pointer;
+}
+
+#player .icon img {
+    width: 32px;
+}
+
+#player .controls_group ion-icon {
+    font-size: 2em;
+}
+
+#player .controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-right: 3px;
+}
+
+#player .controls_group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#player .controls_group div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#player .controls_group ion-button {
+    display: flex;
+}
+
+#player .progress .time {
+    font-size: .7em;
+    padding-left: 3px;
+}
+
+#player .hide {
+    height: 100%;
+    vertical-align: middle;
+    background-color: rgba(0,0,0,.5);
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    display: flex;
+    align-items: center;
+    color: rgba(255,255,255,.8);
+}
+
+#player .hide:hover {
+    cursor: pointer;
+}
+
+#controls_play ion-button {
+    position: relative;
+    left: 2px;
+}
