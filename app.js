@@ -62,10 +62,11 @@ function resizeCanvas() {
     mid_y = canvas.height / 2;
 
     if ( canvas.width > bufferLength ) {
-        sliceWidth =  canvas.width / bufferLength;
+        sliceWidth =  canvas.width / (bufferLength - 1);
     } else {
-        sliceWidth =  bufferLength / canvas.width;
+        sliceWidth =  (bufferLength - 1) / canvas.width;
     }
+    sliceWidth = Math.max(sliceWidth, 3);
     // Adjust height chunks based on canvas size
     heightChunks = (canvas.height / 256) * .8;
 }
