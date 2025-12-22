@@ -344,6 +344,53 @@ async function appSetup() {
         }
     });
 
+    // Setup volume slider toggle and controls
+    const volumeSliderContainer = document.getElementById('volume-slider-container');
+    const volumeSlider = document.getElementById('volume_slider');
+    const volButton = document.getElementById('vol');
+    const volMuteButton = document.getElementById('vol_mute');
+    
+    // Toggle volume slider visibility
+    volButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (volumeSliderContainer.style.display === 'none') {
+            volumeSliderContainer.style.display = 'flex';
+        } else {
+            volumeSliderContainer.style.display = 'none';
+        }
+    });
+    
+    volMuteButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (volumeSliderContainer.style.display === 'none') {
+            volumeSliderContainer.style.display = 'flex';
+        } else {
+            volumeSliderContainer.style.display = 'none';
+        }
+    });
+    
+    // Close volume slider when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.volume')) {
+            volumeSliderContainer.style.display = 'none';
+        }
+    });
+    
+    // Sync volume slider with audio volume
+    volumeSlider.addEventListener('input', (e) => {
+        const volume = e.target.value / 100;
+        audio.volume = volume;
+        
+        // Update volume icon
+        if (volume === 0) {
+            volButton.style.display = 'none';
+            volMuteButton.style.display = 'block';
+        } else {
+            volButton.style.display = 'block';
+            volMuteButton.style.display = 'none';
+        }
+    });
+
     // Setup some cpu based timers for the visualization
     setInterval( () => {
         clearFrame = 1;
@@ -370,6 +417,7 @@ async function appSetup() {
     let last_vol = getStorage('playback_vol');
     if ( last_vol ) {
         audio.volume = last_vol;
+        volumeSlider.value = audio.volume * 100;
     }
 }
 

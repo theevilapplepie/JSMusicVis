@@ -16,7 +16,7 @@
         <div id="player-wrapper">
             <div class="now_playing">
                 <div class="icon" id="music_icon" onClick="document.getElementById('player_file').click();">
-                    <div id="icon_border">
+                    <div id="icon_border" class="smallshadow">
                         <ion-icon name="musical-notes" id="icon_image"></ion-icon>
                     </div>
                 </div>
@@ -27,26 +27,40 @@
             </div>
             <div class="controls">
                 <div class="controls_group">
-                    <div class="prev"><ion-icon name="chevron-back"></ion-icon></div>
+                    <div class="prev"><ion-icon name="chevron-back" class="largeshadow largeshadowhv"></ion-icon></div>
                     <div id="controls_play">
                         <ion-button icon-only fill="clear">
-                            <ion-icon name="play-sharp"></ion-icon>
+                            <ion-icon name="play-sharp" class="largeshadow largeshadowhv"></ion-icon>
                         </ion-button>
                     </div>
                     <div id="controls_pause" style="display: none;">
                         <ion-button icon-only fill="clear">
-                            <ion-icon name="pause-sharp"></ion-icon>
+                            <ion-icon name="pause-sharp" class="largeshadow largeshadowhv"></ion-icon>
                         </ion-button>
                     </div>
-                    <div class="next"><ion-icon name="chevron-forward"></ion-icon></div>
+                    <div class="next"><ion-icon name="chevron-forward" class="largeshadow largeshadowhv"></ion-icon></div>
                 </div>
                 <div class="progress">
-                    <input type="range" min="0" max="100" value="0" class="slider" step="1" id="player_slider">
-                    <div class="time"><span id="player_runtime">00:00:00</span> / <span id="player_duration">00:00:00</span></div>
+                    <input type="range" min="0" max="100" value="0" class="slider smallshadow smallshadowhv" step="1" id="player_slider">
+                    <div class="time smallshadow"><span id="player_runtime">00:00:00</span> / <span id="player_duration">00:00:00</span></div>
+                </div>
+                <div class="volume">
+                    <div class="volume-slider-container" id="volume-slider-container" style="display: none;">
+                        <input type="range" min="0" max="100" value="100" class="volume-slider" id="volume_slider" orient="vertical">
+                    </div>
+                    <div id="vol">
+                        <ion-button icon-only fill="clear">
+                            <ion-icon name="volume-medium" class="largeshadow largeshadowhv"></ion-icon>
+                        </ion-button>
+                    </div>
+                    <div id="vol_mute" style="display: none;">
+                        <ion-button icon-only fill="clear">
+                            <ion-icon name="volume-mute" class="largeshadow largeshadowhv"></ion-icon>
+                        </ion-button>
+                    </div>
                 </div>
             </div>
-            <div class="volume"></div>
-            <div class="hide" id="player-hide">
+            <div class="hidebutton" id="player-hide">
                 <ion-icon id="hide-back" name="chevron-back-outline"></ion-icon>
                 <ion-icon id="hide-forward" name="chevron-forward-outline" style="display: none;"></ion-icon>
             </div>
