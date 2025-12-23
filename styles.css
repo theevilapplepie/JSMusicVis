@@ -81,7 +81,7 @@ html,body {
 }
 
 #playlist-wrapper.open {
-    max-height: 400px;
+    max-height: min(400px, calc(100vh - 70px));
     opacity: 1;
 }
 

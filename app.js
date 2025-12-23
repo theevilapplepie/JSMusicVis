@@ -175,7 +175,24 @@ function setupStatsOverlay() {
 async function setupWebGPURenderer() {
     // Setup Canvas and WebGPU
     canvas = document.getElementById('canvas');
+    
+    // Handle resize events
     window.addEventListener('resize', resizeCanvas, false);
+    
+    // Handle orientation changes (especially important for iOS)
+    window.addEventListener('orientationchange', () => {
+        // iOS needs a small delay after orientation change
+        setTimeout(() => {
+            resizeCanvas();
+        }, 100);
+    }, false);
+    
+    // Also handle visual viewport resize (for iOS address bar appearing/disappearing)
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            resizeCanvas();
+        });
+    }
     
     // Initialize WebGPU Renderer
     try {
@@ -667,8 +684,12 @@ async function appSetup() {
         clearPlaylist();
     });
     
-    document.getElementById('playlist-close').addEventListener('click', (e) => {
-        togglePlaylist();
+    // Close playlist when clicking on canvas
+    document.getElementById('canvas').addEventListener('click', (e) => {
+        const playlistWrapper = document.getElementById('playlist-wrapper');
+        if (playlistWrapper.classList.contains('open')) {
+            togglePlaylist();
+        }
     });
 
     // Player Controls
