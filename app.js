@@ -28,6 +28,11 @@ function secondsToTime(inputsec) {
 let bufferLength = 512;
 let dataArray = new Uint8Array(bufferLength);
 
+// Playlist management
+let playlist = [];
+let currentTrackIndex = -1;
+let repeatMode = 'off'; // 'off', 'all', 'one'
+
 var notyf = new Notyf({
     duration: 3000,
 });
@@ -198,10 +203,15 @@ async function changeAudioFile(filepath,autoplay=true) {
         if (playPromise == undefined) {
             return;
         }
-        playPromise.then(() => {
+        await playPromise.then(() => {
             console.log('Autoplay allowed and audio is playing.');
         }).catch(error => {
-            // Autoplay was prevented
+            // Ignore AbortError - this happens when play() is interrupted by pause() 
+            // during rapid track changes, which is expected behavior
+            if (error.name === 'AbortError') {
+                return;
+            }
+            // Log other autoplay prevention errors
             console.log('Autoplay blocked:', error);
             notyf.error('Autoplay blocked by browser. Please click play to start audio.');
         });     
@@ -210,9 +220,250 @@ async function changeAudioFile(filepath,autoplay=true) {
 
 function setPlayerDefaultText() {
     document.getElementById('player-title').innerHTML = 'Click the icon';
-    document.getElementById('player-artist').innerHTML = '<span style="font-size: .9em;">and select a music file from your device</span>';
+    document.getElementById('player-artist').innerHTML = '<span style="font-size: .9em;">to open playlist</span>';
     document.getElementById('player_runtime').innerHTML = secondsToTime(0);
     document.getElementById('player_duration').innerHTML = secondsToTime(0);
+}
+
+/* Playlist Management Functions */
+
+function togglePlaylist() {
+    const playlistWrapper = document.getElementById('playlist-wrapper');
+    playlistWrapper.classList.toggle('open');
+}
+
+function updatePlaylistUI() {
+    const playlistItems = document.getElementById('playlist-items');
+    
+    if (playlist.length === 0) {
+        playlistItems.innerHTML = `
+            <div class="playlist-empty">
+                <ion-icon name="musical-notes-outline"></ion-icon>
+                <p>No songs in playlist</p>
+                <p class="playlist-empty-hint">Click + to add music files</p>
+            </div>
+        `;
+        return;
+    }
+    
+    playlistItems.innerHTML = '';
+    playlist.forEach((track, index) => {
+        const item = document.createElement('div');
+        item.className = 'playlist-item';
+        item.dataset.index = index;
+        if (index === currentTrackIndex) {
+            item.classList.add('active');
+        }
+        
+        item.innerHTML = `
+            <ion-icon name="reorder-two" class="playlist-item-drag-handle"></ion-icon>
+            <div class="playlist-item-info">
+                <div class="playlist-item-title">${track.name}</div>
+                <div class="playlist-item-duration">${track.duration || '00:00:00'}</div>
+            </div>
+            <ion-icon name="close-circle-outline" class="playlist-item-remove"></ion-icon>
+        `;
+        
+        // Click to play
+        item.querySelector('.playlist-item-info').addEventListener('click', () => {
+            playTrack(index);
+        });
+        
+        // Remove track
+        item.querySelector('.playlist-item-remove').addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeTrack(index);
+        });
+        
+        // Drag and drop
+        item.draggable = true;
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('drop', handleDrop);
+        item.addEventListener('dragend', handleDragEnd);
+        
+        playlistItems.appendChild(item);
+    });
+}
+
+function addTracksToPlaylist(files) {
+    for (const file of files) {
+        const track = {
+            name: file.name.replace(/\.[^.]+$/, ''),
+            file: file,
+            url: URL.createObjectURL(file),
+            duration: null
+        };
+        playlist.push(track);
+    }
+    updatePlaylistUI();
+    
+    if (currentTrackIndex === -1 && playlist.length > 0) {
+        playTrack(0);
+    }
+}
+
+async function removeTrack(index) {
+    if (index === currentTrackIndex) {
+        if (playlist.length > 1) {
+            // Play next track if available
+            if (index < playlist.length - 1) {
+                await playTrack(index + 1);
+            } else {
+                // Otherwise play previous track
+                await playTrack(index - 1);
+            }
+        } else {
+            currentTrackIndex = -1;
+            setPlayerDefaultText();
+        }
+    }
+    // In all cases we're removing, so minus current track index
+    currentTrackIndex--;
+    // Revoke URL to free memory
+    if (playlist[index].url) {
+        URL.revokeObjectURL(playlist[index].url);
+    }
+    
+    playlist.splice(index, 1);
+    updatePlaylistUI();
+}
+
+function clearPlaylist() {
+    if (playlist.length === 0) return;
+    
+    if (confirm('Clear entire playlist?')) {
+        audio.pause();
+        playlist.forEach(track => {
+            if (track.url) {
+                URL.revokeObjectURL(track.url);
+            }
+        });
+        playlist = [];
+        currentTrackIndex = -1;
+        updatePlaylistUI();
+        setPlayerDefaultText();
+    }
+}
+
+async function playTrack(index) {
+    if (index < 0 || index >= playlist.length) return;
+    
+    currentTrackIndex = index;
+    const track = playlist[index];
+    
+    document.getElementById('player-title').innerHTML = track.name;
+    document.getElementById('player-artist').innerHTML = `Track ${index + 1} of ${playlist.length}`;
+    
+    await changeAudioFile(track.url);
+    updatePlaylistUI();
+}
+
+function playNext() {
+    if (playlist.length === 0) return;
+    
+    if (repeatMode === 'one') {
+        // Replay current track
+        audio.currentTime = 0;
+        audio.play();
+        return;
+    }
+    
+    const nextIndex = (currentTrackIndex + 1) % playlist.length;
+    
+    // If at end and not repeating all, stop
+    if (nextIndex === 0 && repeatMode !== 'all') {
+        audio.pause();
+        return;
+    }
+    
+    playTrack(nextIndex);
+}
+
+function playPrevious() {
+    if (playlist.length === 0) return;
+    
+    const prevIndex = currentTrackIndex > 0 ? currentTrackIndex - 1 : playlist.length - 1;
+    playTrack(prevIndex);
+}
+
+function toggleRepeatMode() {
+    const modes = ['off', 'all', 'one'];
+    const currentIndex = modes.indexOf(repeatMode);
+    repeatMode = modes[(currentIndex + 1) % modes.length];
+    
+    const repeatBtn = document.getElementById('playlist-repeat');
+    repeatBtn.dataset.mode = repeatMode;
+    
+    const titles = {
+        'off': 'Repeat off',
+        'all': 'Repeat playlist',
+        'one': 'Repeat one'
+    };
+    repeatBtn.title = titles[repeatMode];
+    
+    setStorage('repeat_mode', repeatMode, 7);
+}
+
+// Drag and drop handlers
+let draggedElement = null;
+
+function handleDragStart(e) {
+    draggedElement = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    
+    const target = e.target.closest('.playlist-item');
+    if (target && target !== draggedElement) {
+        const rect = target.getBoundingClientRect();
+        const midpoint = rect.top + rect.height / 2;
+        
+        if (e.clientY < midpoint) {
+            target.parentNode.insertBefore(draggedElement, target);
+        } else {
+            target.parentNode.insertBefore(draggedElement, target.nextSibling);
+        }
+    }
+    
+    return false;
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    // Reorder playlist array based on new DOM order
+    const items = document.querySelectorAll('.playlist-item');
+    const newPlaylist = [];
+    let newCurrentIndex = -1;
+    
+    items.forEach((item, index) => {
+        const oldIndex = parseInt(item.dataset.index);
+        newPlaylist.push(playlist[oldIndex]);
+        if (oldIndex === currentTrackIndex) {
+            newCurrentIndex = index;
+        }
+    });
+    
+    playlist = newPlaylist;
+    currentTrackIndex = newCurrentIndex;
+    updatePlaylistUI();
+    
+    return false;
+}
+
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+    draggedElement = null;
 }
 
 /* Application Entry Point */
@@ -246,6 +497,12 @@ async function appSetup() {
     audio.addEventListener('loadedmetadata', (e) => {
         slider.max = audio.duration;
         document.getElementById('player_duration').innerHTML = secondsToTime(audio.duration);
+        
+        // Update duration in playlist
+        if (currentTrackIndex >= 0 && currentTrackIndex < playlist.length) {
+            playlist[currentTrackIndex].duration = secondsToTime(audio.duration);
+            updatePlaylistUI();
+        }
     });
     audio.addEventListener('play', (e) => {
         if ( ! audio.src ) {
@@ -286,22 +543,53 @@ async function appSetup() {
             document.getElementById('player_duration').innerHTML = secondsToTime(audio.duration);
         }
     });
+    audio.addEventListener('ended', (e) => {
+        // Auto-play next track in playlist
+        if (playlist.length > 0 && currentTrackIndex >= 0) {
+            playNext();
+        }
+    });
 
     // Player Audio File Input
     document.getElementById('player_file').addEventListener('change', (e) => {
         if ( e.currentTarget.files.length == 0 ) {
             return;
         }
-        // Overload setting the name as it's not that simple for local filesystem blobs
-        let fileName = e.currentTarget.files[0].name
-        fileName = fileName.replace(/\.[^ ]+$/,'');
-        document.getElementById('player-title').innerHTML = fileName;
-        document.getElementById('player-artist').innerHTML = '< Click the icon to change music';
-        // Load the new file
-        changeAudioFile(URL.createObjectURL(e.currentTarget.files[0]));
+        addTracksToPlaylist(Array.from(e.currentTarget.files));
+        // Reset the input so the same files can be added again if needed
+        e.currentTarget.value = '';
+    });
+
+    // Music icon opens playlist
+    document.getElementById('music_icon').addEventListener('click', (e) => {
+        togglePlaylist();
+    });
+
+    // Playlist controls
+    document.getElementById('playlist-repeat').addEventListener('click', (e) => {
+        toggleRepeatMode();
+    });
+    
+    document.getElementById('playlist-add').addEventListener('click', (e) => {
+        document.getElementById('player_file').click();
+    });
+    
+    document.getElementById('playlist-clear').addEventListener('click', (e) => {
+        clearPlaylist();
+    });
+    
+    document.getElementById('playlist-close').addEventListener('click', (e) => {
+        togglePlaylist();
     });
 
     // Player Controls
+    document.querySelector('.prev').addEventListener('click', (e) => {
+        playPrevious();
+    });
+    
+    document.querySelector('.next').addEventListener('click', (e) => {
+        playNext();
+    });
     document.getElementById('controls_play').children[0].addEventListener("click", (e) => {
         audio.play();
     });
@@ -407,18 +695,32 @@ async function appSetup() {
     let savedPlaybackState = getStorage('playback_state') == 'playing' ? 1 : 0;
         // We can't automagically restore usage of local files without user interaction due to browser safety
     if ( savedFile && ! savedFile.startsWith('blob:') ) {
-        changeAudioFile(savedFile,savedPlaybackState);
+        await changeAudioFile(savedFile,savedPlaybackState);
     } else {
         // Temporarily always restore "music.opus" as the default audio file so I don't
         // pull my hair out having to manually pick a file after each reload.
         if ( location.hostname == "127.0.0.1" ) {
-            changeAudioFile('musisc.opus',false);
+            await changeAudioFile('musisc.opus',false);
         }
     }
     let last_vol = getStorage('playback_vol');
     if ( last_vol ) {
         audio.volume = last_vol;
         volumeSlider.value = audio.volume * 100;
+    }
+    
+    // Restore repeat mode
+    let savedRepeatMode = getStorage('repeat_mode');
+    if (savedRepeatMode && ['off', 'all', 'one'].includes(savedRepeatMode)) {
+        repeatMode = savedRepeatMode;
+        const repeatBtn = document.getElementById('playlist-repeat');
+        repeatBtn.dataset.mode = repeatMode;
+        const titles = {
+            'off': 'Repeat off',
+            'all': 'Repeat playlist',
+            'one': 'Repeat one'
+        };
+        repeatBtn.title = titles[repeatMode];
     }
 }
 

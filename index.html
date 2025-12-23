@@ -13,10 +13,38 @@
 <body>
     <canvas id="canvas"></canvas>
     <div id="player">
-        <input hidden type="file" id="player_file">
+        <input hidden type="file" id="player_file" multiple accept="audio/*">
+        <div id="playlist-wrapper">
+            <div class="playlist-header">
+                <h3>Playlist</h3>
+                <div class="playlist-actions">
+                    <button id="playlist-repeat" class="playlist-btn" data-mode="off" title="Repeat off">
+                        <ion-icon name="repeat-outline"></ion-icon>
+                    </button>
+                    <button id="playlist-add" class="playlist-btn" title="Add songs">
+                        <ion-icon name="add-circle-outline"></ion-icon>
+                    </button>
+                    <button id="playlist-clear" class="playlist-btn" title="Clear playlist">
+                        <ion-icon name="trash-outline"></ion-icon>
+                    </button>
+                    <button id="playlist-close" class="playlist-btn" title="Close playlist">
+                        <ion-icon name="close-circle-outline"></ion-icon>
+                    </button>
+                </div>
+            </div>
+            <div class="playlist-container">
+                <div id="playlist-items" class="playlist-items">
+                    <div class="playlist-empty">
+                        <ion-icon name="musical-notes-outline"></ion-icon>
+                        <p>No songs in playlist</p>
+                        <p class="playlist-empty-hint">Click + to add music files</p>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div id="player-wrapper">
             <div class="now_playing">
-                <div class="icon" id="music_icon" onClick="document.getElementById('player_file').click();">
+                <div class="icon" id="music_icon">
                     <div id="icon_border" class="smallshadow">
                         <ion-icon name="musical-notes" id="icon_image"></ion-icon>
                     </div>
@@ -67,7 +95,7 @@
             </div>
         </div>
     </div>
-    <audio loop preload="none" id="audio_player">
+    <audio preload="none" id="audio_player">
         Your browser does not support the audio element.
     </audio>    
     <script type="module" src="app.js"></script>
