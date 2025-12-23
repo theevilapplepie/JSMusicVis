@@ -276,8 +276,7 @@ function updatePlaylistUI() {
         if (index === currentTrackIndex) {
             item.classList.add('active');
         }
-        
-        let title = null;
+        let title = "";
         if ( track.artist ) {
             title = `${track.artist} - `;
         }
@@ -346,7 +345,9 @@ async function addTracksToPlaylist(files) {
         try {
             let metadata = await parseBlob(file);
             if ( metadata && metadata.common ) {
-                title = metadata.common.title;
+                if ( metadata.common.title ) {
+                    title = metadata.common.title;
+                }
                 artist = metadata.common.artist;
                 album = metadata.common.album;
             }
