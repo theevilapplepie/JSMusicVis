@@ -6,6 +6,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
     "ionicons": "^7.4.0",
     "music-metadata-browser": "^2.5.10",
     "notyf": "^3.10.0",

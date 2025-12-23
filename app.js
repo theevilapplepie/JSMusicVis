@@ -250,6 +250,7 @@ function togglePlaylist() {
 
 function updatePlaylistUI() {
     const playlistItems = document.getElementById('playlist-items');
+    const loadingDiv = document.getElementById('playlist-loading');
     
     if (playlist.length === 0) {
         playlistItems.innerHTML = `
@@ -271,18 +272,25 @@ function updatePlaylistUI() {
             item.classList.add('active');
         }
         
+        let title = null;
+        if ( track.artist ) {
+            title = `${track.artist} - `;
+        }
+        title += track.title;
         item.innerHTML = `
             <ion-icon name="reorder-two" class="playlist-item-drag-handle"></ion-icon>
             <div class="playlist-item-info">
-                <div class="playlist-item-title">${track.name}</div>
-                <div class="playlist-item-duration">${track.duration || '00:00:00'}</div>
+                <div class="playlist-item-title">${title}</div>
+                <div class="playlist-item-duration">${track.duration}</div>
             </div>
             <ion-icon name="close-circle-outline" class="playlist-item-remove"></ion-icon>
         `;
         
         // Click to play
         item.querySelector('.playlist-item-info').addEventListener('click', () => {
-            playTrack(index);
+            if (index !== currentTrackIndex) {
+                playTrack(index);
+            }
         });
         
         // Remove track
@@ -302,25 +310,37 @@ function updatePlaylistUI() {
     });
 }
 
+function showPlaylistLoading() {
+    const loadingDiv = document.querySelector('#playlist-loading');
+    if (loadingDiv) {
+        loadingDiv.style.display = 'flex';
+    }
+}
+
+function hidePlaylistLoading() {
+    const loadingDiv = document.querySelector('#playlist-loading');
+    if (loadingDiv) {
+        loadingDiv.style.display = 'none';
+    }
+}
+
 async function addTracksToPlaylist(files) {
+    let loadingTextElement = document.getElementById('playlist-loading-text');
+    let currentFileCount = 0;
+        
     for (const file of files) {
+        currentFileCount++;
+        loadingTextElement.innerHTML = `Processing file ${currentFileCount} of ${files.length}<br/><span class="loading-filename">${file.name}</span>`;
         // Default fallback to filename
-        let trackName = file.name.replace(/\.[^.]+$/, '');
-        let artist = null;
+        let title = file.name.replace(/\.[^.]+$/, '');
+        let metadata = null;
         
         // Try to extract metadata
         try {
-            const metadata = await parseBlob(file);
-            const title = metadata.common.title;
-            const trackArtist = metadata.common.artist;
-            
-            if (title && trackArtist) {
-                trackName = `${trackArtist} - ${title}`;
-                artist = trackArtist;
-            } else if (title) {
-                trackName = title;
-            } else if (trackArtist) {
-                artist = trackArtist;
+            metadata = await parseBlob(file);
+            console.log(metadata);
+            if ( title ) {
+                title = metadata.common.title;
             }
         } catch (error) {
             // Metadata extraction failed, use filename
@@ -328,19 +348,21 @@ async function addTracksToPlaylist(files) {
         }
         
         const track = {
-            name: trackName,
-            artist: artist,
+            title: title,
+            artist: metadata.common.artist,
+            album: metadata.common.album,
             file: file,
             url: URL.createObjectURL(file),
-            duration: null
+            duration: secondsToTime(metadata.format.duration)
         };
         playlist.push(track);
     }
-    updatePlaylistUI();
     
     if (currentTrackIndex === -1 && playlist.length > 0) {
-        playTrack(0);
+        await playTrack(0);
     }
+    
+    updatePlaylistUI();
 }
 
 async function removeTrack(index) {
@@ -392,7 +414,7 @@ async function playTrack(index) {
     currentTrackIndex = index;
     const track = playlist[index];
     
-    document.getElementById('player-title').innerHTML = track.name;
+    document.getElementById('player-title').innerHTML = track.title;
     
     // Show artist info or track position
     if (track.artist) {
@@ -428,9 +450,9 @@ function playNext() {
 
 function playPrevious() {
     if (playlist.length === 0) return;
-    
-    const prevIndex = currentTrackIndex > 0 ? currentTrackIndex - 1 : playlist.length - 1;
-    playTrack(prevIndex);
+    if (currentTrackIndex === 0) return;
+    currentTrackIndex--;
+    playTrack(currentTrackIndex - 1);
 }
 
 function toggleRepeatMode() {
@@ -597,13 +619,22 @@ async function appSetup() {
     });
 
     // Player Audio File Input
-    document.getElementById('player_file').addEventListener('change', (e) => {
+    document.getElementById('player_file').addEventListener('change', async (e) => {
         if ( e.currentTarget.files.length == 0 ) {
             return;
         }
-        addTracksToPlaylist(Array.from(e.currentTarget.files));
-        // Reset the input so the same files can be added again if needed
-        e.currentTarget.value = '';
+        const input = e.currentTarget;
+        showPlaylistLoading();
+        try {
+            await addTracksToPlaylist(Array.from(input.files));
+        } catch (error) {
+            console.error('Error adding tracks:', error);
+            notyf.error('Error adding tracks: ' + error.message);
+        } finally {
+            hidePlaylistLoading();
+            // Reset the input so the same files can be added again if needed
+            input.value = '';
+        }
     });
 
     // Music icon opens playlist
@@ -667,12 +698,15 @@ async function appSetup() {
         const wrapper = document.getElementById('player-wrapper');
         const hideBack = document.getElementById('hide-back');
         const hideForward = document.getElementById('hide-forward');
+        const playlistWrapper = document.getElementById('playlist-wrapper');
         
         wrapper.classList.toggle('hidden');
         
         if (wrapper.classList.contains('hidden')) {
             hideBack.style.display = 'none';
             hideForward.style.display = 'block';
+            // Close playlist when hiding player
+            playlistWrapper.classList.remove('open');
         } else {
             hideBack.style.display = 'block';
             hideForward.style.display = 'none';

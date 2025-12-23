@@ -57,23 +57,27 @@ html,body {
 }
 
 #playlist-wrapper {
-    width: 600px;
+    width: 580px;
     max-height: 0;
     opacity: 0;
     overflow: hidden;
-    margin-bottom: 8px;
     background: linear-gradient(145deg, 
         rgba(60, 60, 70, 0.95) 0%,
         rgba(40, 40, 48, 0.95) 50%,
         rgba(30, 30, 38, 0.95) 100%);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(185, 185, 185, 0.15);
-    border-radius: 12px;
+    border-bottom: none;
+    padding-bottom: 1px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
                 0 2px 8px rgba(0, 0, 0, 0.2),
                 inset 0 1px 0 rgba(255, 255, 255, 0.1),
                 inset 0 -1px 0 rgba(0, 0, 0, 0.2);
     transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out;
+    position: absolute;
+    bottom: 52px; /* This must match the height of the player-wrapper + border */
 }
 
 #playlist-wrapper.open {
@@ -308,6 +312,54 @@ html,body {
     color: rgba(255, 255, 255, 0.4) !important;
 }
 
+#playlist-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.8);
+    position: absolute;
+    left: 0px;
+    bottom: 0px;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+#playlist-loading .loading-text {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    width: 80%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.5;
+}
+
+#playlist-loading .loading-filename {
+    font-size: 0.85em;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(102, 126, 234, 0.2);
+    border-top-color: rgba(102, 126, 234, 0.8);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-top: 14px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 
 #player-wrapper {
     height: 50px;
@@ -323,11 +375,14 @@ html,body {
                 0 2px 8px rgba(0, 0, 0, 0.2),
                 inset 0 1px 0 rgba(255, 255, 255, 0.1),
                 inset 0 -1px 0 rgba(0, 0, 0, 0.2);
-    position: relative;
+    position: absolute;
+    left: calc(50% - calc(600px / 2)); /* This must be half the width of us */
+    bottom: 0px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: box-shadow 0.3s ease;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+    transition: left 0.5s ease-in-out;
 }
 
 #player-wrapper::before {
@@ -359,7 +414,7 @@ html,body {
 }
 
 #player-wrapper.hidden {
-    left: -284px;
+    left: -585px; /* This has to be player-wrapper width minus 15px */
 }
 
 #player-wrapper.hidden #player-hide {
