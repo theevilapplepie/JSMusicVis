@@ -3,6 +3,11 @@ import { parseBlob } from 'music-metadata-browser';
 import Stats from 'stats.js';
 import { Notyf } from 'notyf';
 import 'notyf/notyf.min.css';
+import { Buffer } from 'buffer';
+
+// Make Buffer globally available for music-metadata-browser
+window.Buffer = Buffer;
+globalThis.Buffer = Buffer;
 
 // Add icons
 import { addIcons } from 'ionicons';
@@ -333,14 +338,20 @@ async function addTracksToPlaylist(files) {
         loadingTextElement.innerHTML = `Processing file ${currentFileCount} of ${files.length}<br/><span class="loading-filename">${file.name}</span>`;
         // Default fallback to filename
         let title = file.name.replace(/\.[^.]+$/, '');
-        let metadata = null;
+        let artist = null;
+        let album = null;
+        let duration = 0;
         
         // Try to extract metadata
         try {
-            metadata = await parseBlob(file);
-            console.log(metadata);
-            if ( title ) {
+            let metadata = await parseBlob(file);
+            if ( metadata && metadata.common ) {
                 title = metadata.common.title;
+                artist = metadata.common.artist;
+                album = metadata.common.album;
+            }
+            if ( metadata && metadata.format ) {
+                duration = metadata.format.duration;
             }
         } catch (error) {
             // Metadata extraction failed, use filename
@@ -349,11 +360,11 @@ async function addTracksToPlaylist(files) {
         
         const track = {
             title: title,
-            artist: metadata.common.artist,
-            album: metadata.common.album,
+            artist: artist,
+            album: album,
             file: file,
             url: URL.createObjectURL(file),
-            duration: secondsToTime(metadata.format.duration)
+            duration: secondsToTime(duration)
         };
         playlist.push(track);
     }

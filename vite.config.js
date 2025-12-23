@@ -1,11 +1,21 @@
 import { defineConfig } from 'vite';
 import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill'
+import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill'
 
 export default defineConfig({
   base: '',
   server: {
     port: 3000,
     open: true
+  },
+  define: {
+    global: 'globalThis',
+    'process.env': {}
+  },
+  resolve: {
+    alias: {
+      buffer: 'buffer'
+    }
   },
   build: {
     outDir: 'dist',
@@ -31,7 +41,8 @@ export default defineConfig({
       plugins: [
         NodeGlobalsPolyfillPlugin({
           buffer: true
-        })
+        }),
+        NodeModulesPolyfillPlugin()
       ]
     }
   }  
