@@ -180,6 +180,10 @@ html,body {
     overflow-x: hidden;
 }
 
+.playlist-container.noscroll {
+    overflow: hidden !important;
+}
+
 .playlist-container::-webkit-scrollbar {
     width: 8px;
 }

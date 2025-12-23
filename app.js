@@ -265,18 +265,38 @@ function setPlayerDefaultText() {
 
 /* Playlist Management Functions */
 
+function scrollCurrentTrackIntoView(ignoreOpen=false) {
+    if ( currentTrackIndex < 0 ) {
+        // We don't have anything to scroll into view
+        return;
+    }
+    if ( document.getElementById('playlist-wrapper').classList.contains('open') || ignoreOpen ) {
+        const activeItem = document.querySelector('.playlist-item.active');
+        if (activeItem) {
+            activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+}
+
 function togglePlaylist() {
     const playlistWrapper = document.getElementById('playlist-wrapper');
+    const playlistContainer = document.querySelector('.playlist-container');
     const isOpening = !playlistWrapper.classList.contains('open');
+    // Temporarily disable showing scrollbars as we open if
+    // the "add songs to playlist" message is showing
+    if ( playlist.length === 0 ) {
+        playlistContainer.classList.add('noscroll');
+    }
     playlistWrapper.classList.toggle('open');
-    
+    setTimeout(() => {
+        playlistContainer.classList.remove('noscroll');
+    }, 400);
+
     // Scroll active item into view when opening
     if (isOpening && currentTrackIndex >= 0) {
         setTimeout(() => {
-            const activeItem = document.querySelector('.playlist-item.active');
-            if (activeItem) {
-                activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+            // Set ignoreOpen as it may not be fully open yet
+            scrollCurrentTrackIntoView(true);
         }, 300); // Wait for playlist open animation to complete
     }
 }
@@ -458,7 +478,7 @@ async function playTrack(index) {
     
     currentTrackIndex = index;
     const track = playlist[index];
-    
+
     document.getElementById('player-title').innerHTML = track.title;
     
     // Show artist info or track position
@@ -468,8 +488,18 @@ async function playTrack(index) {
         document.getElementById('player-artist').innerHTML = 'Unknown Artist';
     }
     
+    // Update Media Session metadata
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: track.title || 'Unknown Track',
+            artist: track.artist || 'Unknown Artist',
+            album: track.album || 'Unknown Album'
+        });
+    }
+    
     await changeAudioFile(track.url);
     updatePlaylistUI();
+    scrollCurrentTrackIntoView();
 }
 
 function playNext() {
@@ -636,7 +666,26 @@ async function appSetup() {
         setStorage('playback_state','paused',0);
         document.getElementById('controls_play').style.display = 'inherit';
         document.getElementById('controls_pause').style.display = 'none';
-    });                
+    });
+    
+    // Set up Media Session API handlers
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', () => {
+            audio.play();
+        });
+        
+        navigator.mediaSession.setActionHandler('pause', () => {
+            audio.pause();
+        });
+        
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+            playPrevious();
+        });
+        
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+            playNext();
+        });
+    }                
     audio.addEventListener("volumechange", (e) => {
         setStorage('playback_vol',audio.volume,7);
     });
@@ -746,18 +795,32 @@ async function appSetup() {
         const wrapper = document.getElementById('player-wrapper');
         const hideBack = document.getElementById('hide-back');
         const hideForward = document.getElementById('hide-forward');
-        const playlistWrapper = document.getElementById('playlist-wrapper');
-        
-        wrapper.classList.toggle('hidden');
+        const playlistWrapper = document.getElementById('playlist-wrapper');        
         
         if (wrapper.classList.contains('hidden')) {
-            hideBack.style.display = 'none';
-            hideForward.style.display = 'block';
-            // Close playlist when hiding player
-            playlistWrapper.classList.remove('open');
-        } else {
+            // We are unhiding the player
+            wrapper.classList.toggle('hidden');
             hideBack.style.display = 'block';
             hideForward.style.display = 'none';
+        } else {
+            // We are hiding the player
+                // If playlist is open, close it first and wait
+            if( playlistWrapper.classList.contains('open') ) {
+                playlistWrapper.classList.remove('open');
+                // Wait for playlist to "disappear" before hiding
+                console.log("Waiting to hide player until playlist is closed");
+                setTimeout(() => {
+                    console.log("Hiding player now");
+                    wrapper.classList.toggle('hidden');
+                    hideBack.style.display = 'none';
+                    hideForward.style.display = 'block';
+                }, 400);
+                return;
+            }
+            // Just hide immediately
+            wrapper.classList.toggle('hidden');
+            hideBack.style.display = 'none';
+            hideForward.style.display = 'block';
         }
     });
 
