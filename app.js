@@ -3,11 +3,11 @@ import { parseBlob } from 'music-metadata-browser';
 import Stats from 'stats.js';
 import { Notyf } from 'notyf';
 import 'notyf/notyf.min.css';
-import { Buffer } from 'buffer';
+import { Buffer as BufferPolyfill } from 'buffer/';
 
 // Make Buffer globally available for music-metadata-browser
-window.Buffer = Buffer;
-globalThis.Buffer = Buffer;
+window.Buffer = BufferPolyfill;
+globalThis.Buffer = BufferPolyfill;
 
 // Add icons
 import { addIcons } from 'ionicons';
