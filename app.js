@@ -1,4 +1,20 @@
 import { WebGPURenderer } from './webgpu-renderer.js';
+import { parseBlob } from 'music-metadata-browser';
+import Stats from 'stats.js';
+import { Notyf } from 'notyf';
+import 'notyf/notyf.min.css';
+
+// Add icons
+import { addIcons } from 'ionicons';
+import { defineCustomElement } from 'ionicons/components/ion-icon.js';
+import { musicalNotesOutline, musicalNotes, repeatOutline, addCircleOutline, trashOutline, closeCircleOutline, chevronBack, playSharp, pauseSharp, chevronForward, volumeMedium, volumeMute, chevronBackOutline, chevronForwardOutline, reorderTwo  } from 'ionicons/icons';
+
+addIcons({ musicalNotesOutline, musicalNotes, repeatOutline, addCircleOutline, trashOutline, closeCircleOutline, chevronBack, playSharp, pauseSharp, chevronForward, volumeMedium, volumeMute, chevronBackOutline, chevronForwardOutline, reorderTwo });
+defineCustomElement();
+
+// Make Stats and Notyf globally available
+window.Stats = Stats;
+window.Notyf = Notyf;
 
 /* General functions */
 function setStorage(name,value,days) {
@@ -286,10 +302,34 @@ function updatePlaylistUI() {
     });
 }
 
-function addTracksToPlaylist(files) {
+async function addTracksToPlaylist(files) {
     for (const file of files) {
+        // Default fallback to filename
+        let trackName = file.name.replace(/\.[^.]+$/, '');
+        let artist = null;
+        
+        // Try to extract metadata
+        try {
+            const metadata = await parseBlob(file);
+            const title = metadata.common.title;
+            const trackArtist = metadata.common.artist;
+            
+            if (title && trackArtist) {
+                trackName = `${trackArtist} - ${title}`;
+                artist = trackArtist;
+            } else if (title) {
+                trackName = title;
+            } else if (trackArtist) {
+                artist = trackArtist;
+            }
+        } catch (error) {
+            // Metadata extraction failed, use filename
+            console.log('Could not extract metadata for', file.name, error);
+        }
+        
         const track = {
-            name: file.name.replace(/\.[^.]+$/, ''),
+            name: trackName,
+            artist: artist,
             file: file,
             url: URL.createObjectURL(file),
             duration: null
@@ -353,7 +393,13 @@ async function playTrack(index) {
     const track = playlist[index];
     
     document.getElementById('player-title').innerHTML = track.name;
-    document.getElementById('player-artist').innerHTML = `Track ${index + 1} of ${playlist.length}`;
+    
+    // Show artist info or track position
+    if (track.artist) {
+        document.getElementById('player-artist').innerHTML = track.artist;
+    } else {
+        document.getElementById('player-artist').innerHTML = 'Unknown Artist';
+    }
     
     await changeAudioFile(track.url);
     updatePlaylistUI();

@@ -40,7 +40,9 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Install Node Packages
-        run: npm install
+        run: |
+          npm install
+          npm run build
 
       # Setup the github page
       - name: Setup Pages
@@ -51,7 +53,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
-          path: '.'
+          path: 'dist/'
           
       # Deploy
       - name: Deploy to GitHub Pages
