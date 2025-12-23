@@ -93,14 +93,16 @@ html,body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
+    padding: 8px 8px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     flex-shrink: 0;
 }
 
 .playlist-header h3 {
     margin: 0;
-    font-size: 1.1em;
+    padding-top: 2px;
+    padding-left: 4px;
+    font-size: 1.2em;
     font-weight: bold;
     background: linear-gradient(135deg, 
         #667eea 0%, 

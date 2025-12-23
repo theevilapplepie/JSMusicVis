@@ -267,7 +267,18 @@ function setPlayerDefaultText() {
 
 function togglePlaylist() {
     const playlistWrapper = document.getElementById('playlist-wrapper');
+    const isOpening = !playlistWrapper.classList.contains('open');
     playlistWrapper.classList.toggle('open');
+    
+    // Scroll active item into view when opening
+    if (isOpening && currentTrackIndex >= 0) {
+        setTimeout(() => {
+            const activeItem = document.querySelector('.playlist-item.active');
+            if (activeItem) {
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 300); // Wait for playlist open animation to complete
+    }
 }
 
 function updatePlaylistUI() {
@@ -335,6 +346,11 @@ function showPlaylistLoading() {
     const loadingDiv = document.querySelector('#playlist-loading');
     if (loadingDiv) {
         loadingDiv.style.display = 'flex';
+    }
+    // Blur the playlist-add button
+    const addBtn = document.getElementById('playlist-add');
+    if (addBtn) {
+        addBtn.blur();
     }
 }
 
