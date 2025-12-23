@@ -480,7 +480,6 @@ function playNext() {
 function playPrevious() {
     if (playlist.length === 0) return;
     if (currentTrackIndex === 0) return;
-    currentTrackIndex--;
     playTrack(currentTrackIndex - 1);
 }
 
