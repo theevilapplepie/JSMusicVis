@@ -67,7 +67,7 @@ var clearFrame = 0;
 var updateWaveform = 0;
 var lastFrameTime = 0;
 var wasPlaying = 0;
-var targetFrameTime = 1000 / 80; // 60fps (30 fps = ~33.33ms per frame)
+var targetFrameTime = 1000 / 80; // Set to 60fps (30 fps = ~33.33ms per frame - was more like 40ms per frame in practice)
 
 var avg_r = 0;
 var avg_g = 0;
@@ -282,23 +282,14 @@ function togglePlaylist() {
     const playlistWrapper = document.getElementById('playlist-content');
     const playlistContainer = document.querySelector('.playlist-body');
     const isOpening = !playlistWrapper.classList.contains('open');
-    // Temporarily disable showing scrollbars as we open if
-    // the "add songs to playlist" message is showing
-/*    if ( playlist.length === 0 ) {
-        playlistContainer.classList.add('noscroll');
-    }*/
-    playlistWrapper.classList.toggle('open');
-/*    setTimeout(() => {
-        playlistContainer.classList.remove('noscroll');
-    }, 400);*/
 
     // Scroll active item into view when opening
     if (isOpening && currentTrackIndex >= 0) {
-        setTimeout(() => {
-            // Set ignoreOpen as it may not be fully open yet
-            scrollCurrentTrackIntoView(true);
-        }, 300); // Wait for playlist open animation to complete
+        scrollCurrentTrackIntoView(true);
     }
+
+    playlistWrapper.classList.toggle('open');
+
 }
 
 function recalculatePlaylistHeightOffset() {
