@@ -295,7 +295,6 @@ function togglePlaylist() {
 function recalculatePlaylistHeightOffset() {
     const playlistWrapper = document.getElementById('playlist-wrapper');
     const playlistContent = document.getElementById('playlist-content');
-    console.log('Playlist height:', playlistWrapper.offsetHeight);
     playlistContent.style.top = playlistWrapper.offsetHeight + 'px';
 }
 
