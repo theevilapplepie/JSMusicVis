@@ -270,7 +270,7 @@ function scrollCurrentTrackIntoView(ignoreOpen=false) {
         // We don't have anything to scroll into view
         return;
     }
-    if ( document.getElementById('playlist-wrapper').classList.contains('open') || ignoreOpen ) {
+    if ( document.getElementById('playlist-content').classList.contains('open') || ignoreOpen ) {
         const activeItem = document.querySelector('.playlist-item.active');
         if (activeItem) {
             activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -279,18 +279,18 @@ function scrollCurrentTrackIntoView(ignoreOpen=false) {
 }
 
 function togglePlaylist() {
-    const playlistWrapper = document.getElementById('playlist-wrapper');
-    const playlistContainer = document.querySelector('.playlist-container');
+    const playlistWrapper = document.getElementById('playlist-content');
+    const playlistContainer = document.querySelector('.playlist-body');
     const isOpening = !playlistWrapper.classList.contains('open');
     // Temporarily disable showing scrollbars as we open if
     // the "add songs to playlist" message is showing
-    if ( playlist.length === 0 ) {
+/*    if ( playlist.length === 0 ) {
         playlistContainer.classList.add('noscroll');
-    }
+    }*/
     playlistWrapper.classList.toggle('open');
-    setTimeout(() => {
+/*    setTimeout(() => {
         playlistContainer.classList.remove('noscroll');
-    }, 400);
+    }, 400);*/
 
     // Scroll active item into view when opening
     if (isOpening && currentTrackIndex >= 0) {
@@ -299,6 +299,13 @@ function togglePlaylist() {
             scrollCurrentTrackIntoView(true);
         }, 300); // Wait for playlist open animation to complete
     }
+}
+
+function recalculatePlaylistHeightOffset() {
+    const playlistWrapper = document.getElementById('playlist-wrapper');
+    const playlistContent = document.getElementById('playlist-content');
+    console.log('Playlist height:', playlistWrapper.offsetHeight);
+    playlistContent.style.top = playlistWrapper.offsetHeight + 'px';
 }
 
 function updatePlaylistUI() {
@@ -313,6 +320,9 @@ function updatePlaylistUI() {
                 <p class="playlist-empty-hint">Click + to add music files</p>
             </div>
         `;
+        // TODO: YES I KNOW THIS ABHORRENT AND I ALSO AGREE IT'S THE WORST WAY TO DO THIS
+        // BUT I AM TIRED AND DON'T WANT TO PUT IN A MUTEXWATCHER RIGHT NOW
+        setTimeout(recalculatePlaylistHeightOffset, 100);
         return;
     }
     
@@ -362,6 +372,7 @@ function updatePlaylistUI() {
         
         playlistItems.appendChild(item);
     });
+    recalculatePlaylistHeightOffset();
 }
 
 function showPlaylistLoading() {
@@ -369,7 +380,12 @@ function showPlaylistLoading() {
     if (loadingDiv) {
         loadingDiv.style.display = 'flex';
     }
-    // Blur the playlist-add button
+
+    // Blur the playlist divs
+    document.querySelector('.playlist-header').classList.add('blur');
+    document.querySelector('.playlist-body').classList.add('blur');
+
+    // Focus blur the playlist-add button
     const addBtn = document.getElementById('playlist-add');
     if (addBtn) {
         addBtn.blur();
@@ -381,6 +397,9 @@ function hidePlaylistLoading() {
     if (loadingDiv) {
         loadingDiv.style.display = 'none';
     }
+    // Remove blur from the playlist divs
+    document.querySelector('.playlist-header').classList.remove('blur');
+    document.querySelector('.playlist-body').classList.remove('blur');
 }
 
 async function addTracksToPlaylist(files) {
@@ -798,7 +817,7 @@ async function appSetup() {
     
     // Close playlist when clicking on canvas
     document.getElementById('canvas').addEventListener('click', (e) => {
-        const playlistWrapper = document.getElementById('playlist-wrapper');
+        const playlistWrapper = document.getElementById('playlist-content');
         if (playlistWrapper.classList.contains('open')) {
             togglePlaylist();
         }
@@ -840,10 +859,10 @@ async function appSetup() {
 
     // Setup hide/show player toggle
     document.getElementById('player-hide').addEventListener('click', (e) => {
-        const wrapper = document.getElementById('player-wrapper');
+        const wrapper = document.getElementById('player-content');
         const hideBack = document.getElementById('hide-back');
         const hideForward = document.getElementById('hide-forward');
-        const playlistWrapper = document.getElementById('playlist-wrapper');        
+        const playlistWrapper = document.getElementById('playlist-content');        
         
         if (wrapper.classList.contains('hidden')) {
             // We are unhiding the player
@@ -856,9 +875,7 @@ async function appSetup() {
             if( playlistWrapper.classList.contains('open') ) {
                 playlistWrapper.classList.remove('open');
                 // Wait for playlist to "disappear" before hiding
-                console.log("Waiting to hide player until playlist is closed");
                 setTimeout(() => {
-                    console.log("Hiding player now");
                     wrapper.classList.toggle('hidden');
                     hideBack.style.display = 'none';
                     hideForward.style.display = 'block';
@@ -926,6 +943,9 @@ async function appSetup() {
     setInterval( () => {
         updateWaveform = 1;
     }, 50);
+
+    // Baseline our playlistUI
+    updatePlaylistUI();
 
     // Restore previous state
     savedFile = getStorage('playback_file');
