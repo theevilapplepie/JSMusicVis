@@ -65,7 +65,7 @@ html,body {
 #playlist-wrapper {
     position: absolute;
     bottom: 52px;
-    overflow: hidden;
+    overflow: clip;
 }
 
 #playlist-content {
