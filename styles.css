@@ -64,9 +64,9 @@ html,body {
     opacity: 0;
     overflow: hidden;
     background: linear-gradient(145deg, 
-        rgba(60, 60, 70, 0.95) 0%,
-        rgba(40, 40, 48, 0.95) 50%,
-        rgba(30, 30, 38, 0.95) 100%);
+        rgba(60, 60, 70, 0.6) 0%,
+        rgba(40, 40, 48, 0.6) 50%,
+        rgba(30, 30, 38, 0.6) 100%);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(185, 185, 185, 0.15);
     border-bottom: none;
@@ -86,6 +86,7 @@ html,body {
 
 #playlist-wrapper.open {
     max-height: min(400px, calc(100vh - 70px));
+    min-height: 125px;
     opacity: 1;
 }
 
