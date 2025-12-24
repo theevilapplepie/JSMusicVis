@@ -342,6 +342,8 @@ function updatePlaylistUI() {
         item.querySelector('.playlist-item-info').addEventListener('click', () => {
             if (index !== currentTrackIndex) {
                 playTrack(index);
+            } else if ( audio.paused ) {
+                audio.play();
             }
         });
         
@@ -431,28 +433,60 @@ async function addTracksToPlaylist(files) {
 }
 
 async function removeTrack(index) {
+
+    // Are we removing the playing track?
     if (index === currentTrackIndex) {
-        if (playlist.length > 1) {
-            // Play next track if available
-            if (index < playlist.length - 1) {
-                await playTrack(index + 1);
+        // Is there another track to play?
+        if ( playlist.length > 1 ) {
+            // There is! And this the last track?
+            if ( index == playlist.length - 1 ) {
+                // It is!
+                // Are we supposed to loop?
+                if ( repeatMode === 'all' ) {
+                    // Then just use playNext and let the normal operation handle it
+                    await playNext();
+                } else {
+                    // We are not supposed to loop so we have to back up one track
+                    // Even if the current track is playing we are not going to play the previous track
+                    // You don't have looping enabled and just removed the last track, I'm going to make
+                    // it be equivalent to if the prior track had ended naturally.
+                    await playTrack(index - 1,false);
+                }
             } else {
-                // Otherwise play previous track
-                await playTrack(index - 1);
+                // We have another track we can play, so go to it.
+                await playNext();
             }
         } else {
-            currentTrackIndex = -1;
-            setPlayerDefaultText();
+            // There are no other tracks to play, so we prepare to be deleted in a moment.
+            await audio.pause();
         }
     }
-    // In all cases we're removing, so minus current track index
-    currentTrackIndex--;
+    
+    // Everything above is an await because lord have mercy
+    // revoking this URL means that it MUST be out of use
+
     // Revoke URL to free memory
     if (playlist[index].url) {
         URL.revokeObjectURL(playlist[index].url);
     }
-    
+
+    // Remove the requested track index
     playlist.splice(index, 1);
+
+    // Adjust currentTrackIndex if needed
+    // If the removed index is less than currentTrackIndex, we need to decrement it so it matches
+    if ( index < currentTrackIndex ) {
+        currentTrackIndex--;
+    }
+
+    // Is this the last track?
+    // Set us back to uninitialized
+    if ( playlist.length === 0 ) {
+        currentTrackIndex = -1;
+        setPlayerDefaultText();
+    }
+
+    // Ensure the UI is updated
     updatePlaylistUI();
 }
 
@@ -473,7 +507,7 @@ function clearPlaylist() {
     }
 }
 
-async function playTrack(index) {
+async function playTrack(index,autoplay=true) {
     if (index < 0 || index >= playlist.length) return;
     
     currentTrackIndex = index;
@@ -497,14 +531,19 @@ async function playTrack(index) {
         });
     }
     
-    await changeAudioFile(track.url);
+    await changeAudioFile(track.url,autoplay);
     updatePlaylistUI();
     scrollCurrentTrackIntoView();
 }
 
-function playNext() {
-    if (playlist.length === 0) return;
-    
+async function playNext() {
+    // If we have nothing, do nothing
+    // The currentTrackIndex check ensures that we've initialized the index
+    // before allowing a play next
+    if (playlist.length === 0 || currentTrackIndex < 0 ) return;
+
+    // If we're repeating the current track then just play it again
+    // we get called at the end of the track for auto-advance
     if (repeatMode === 'one') {
         // Replay current track
         audio.currentTime = 0;
@@ -512,15 +551,27 @@ function playNext() {
         return;
     }
     
-    const nextIndex = (currentTrackIndex + 1) % playlist.length;
-    
-    // If at end and not repeating all, stop
-    if (nextIndex === 0 && repeatMode !== 'all') {
-        audio.pause();
+    // Are we on the last track of the playlist?
+    if ( currentTrackIndex == playlist.length - 1 ) {
+        // Are we looping the playlist?
+        if ( repeatMode === 'all' ) {
+            // We are, so start at the beginning again.
+            await playTrack(0);
+            return;
+        }
+        // We originally stopped playing on next at end of playlist,
+        // but this produced a unintuitive result where the user's music just stopped
+        // so we're just going to do nothing if it's the last track and we're not
+        // looping the playlist.
+        if ( ! audio.paused ) {
+            // I wanted a message? idk. This was from earlier when I was figuring stuff out.
+            console.log("Attempted to go to next track at end of playlist while actively playing last track - ignoring.");
+        }
         return;
     }
-    
-    playTrack(nextIndex);
+
+    // We have a normal next, so just do it
+    playTrack(currentTrackIndex + 1);
 }
 
 function playPrevious() {
@@ -641,7 +692,7 @@ async function appSetup() {
         document.getElementById('player_duration').innerHTML = secondsToTime(audio.duration);
         
         // Update duration in playlist
-        if (currentTrackIndex >= 0 && currentTrackIndex < playlist.length) {
+        if (currentTrackIndex >= 0) {
             playlist[currentTrackIndex].duration = secondsToTime(audio.duration);
             updatePlaylistUI();
         }
@@ -705,10 +756,7 @@ async function appSetup() {
         }
     });
     audio.addEventListener('ended', (e) => {
-        // Auto-play next track in playlist
-        if (playlist.length > 0 && currentTrackIndex >= 0) {
-            playNext();
-        }
+        playNext();
     });
 
     // Player Audio File Input
